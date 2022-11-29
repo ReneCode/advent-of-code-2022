@@ -1,2 +1,2 @@
 
-print("welcome to day1")
+print("welcome to day 1")
