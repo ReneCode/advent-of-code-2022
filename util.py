@@ -1,11 +1,11 @@
 
 # read file into line array
 
-def read_lines(filename):
-  input_data = []
-
+def read_lines(filename, strip = True):
   with open(filename) as f:
       lines = f.readlines()
-      input_data = [l.strip() for l in lines]
-
-  return input_data
+      lines = [l.strip('\n') for l in lines]
+      if not strip:
+        return lines
+      lines = [l.strip() for l in lines]
+      return lines
