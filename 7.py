@@ -92,7 +92,7 @@ for line in lines:
 
 
 root = stack_dir[0]
-dir_size = {}
+dir_size = { "/": root.get_size() }
 root.fill_dir_size("", dir_size)
 # print(dir_size)
 # print(f'len: {len(dir_size)}')
@@ -101,3 +101,15 @@ all_sizes = [dir_size[name] for name in dir_size.keys()]
 valid_sizes = [s for s in all_sizes if s < 100000]
 total = sum(valid_sizes)
 print(f'total size: {total}')
+
+total_available = 70000000
+needed_unused =   30000000
+root_size = root.get_size()
+current_free = total_available - root_size
+min_cleanup = (needed_unused - current_free)
+# print(f'root size:{root_size} {current_free} {min_cleanup}')
+sorted_sizes = sorted(all_sizes)
+for size in sorted_sizes:
+  if size >= min_cleanup:
+    print(f'size of dir that will be removed: {size}')
+    break
