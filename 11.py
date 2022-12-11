@@ -21,6 +21,9 @@ class Monkey:
     for item in self.items:
       self.inspect_counter += 1
       wlevel = self.do_operation(item)
+
+      # part-1 DIVIDED_BY = 3
+      # part-2 DIVIDED_BY = 1
       if DIVIDED_BY != 1:
         wlevel = int(wlevel / DIVIDED_BY)
       rest = wlevel % self.test_div_by
@@ -49,7 +52,7 @@ class Monkey:
 
 def get_data():
   monkeys = []
-  lines = util.read_lines('./11-example.data')
+  lines = util.read_lines('./11.data')
   for line in lines:
     tok = line.split(":")
     cmd = tok[0]
@@ -73,11 +76,13 @@ def get_data():
   return monkeys
 
 
-def play_round():
+def play_round(mod_item_by = 0):
   for monkey in monkeys:
     throw_items = monkey.throw_items()
     for throw_item in throw_items:
       (idx, item) = throw_item
+      if mod_item_by > 0:
+        item = item % mod_item_by
       monkeys[idx].add_item(item)
 
 
@@ -89,17 +94,21 @@ for i in range(20):
 inspects = sorted([monkey.inspect_counter for monkey in monkeys], reverse=True)
 monkey_business = inspects[0] * inspects[1]
 
-print(inspects, monkey_business)
+print(f'part-1: inspects:{inspects} monkey_business:{monkey_business}')
 
+print("-------")
 
 DIVIDED_BY = 1
+prod_divs = 1
+for monkey in monkeys:
+  prod_divs *= monkey.test_div_by
+
 monkeys = get_data()
-for i in range(20):
-  play_round()
+for i in range(10000):
+  play_round(prod_divs)
 
 inspects = [monkey.inspect_counter for monkey in monkeys]
 sorted_inspects = sorted([monkey.inspect_counter for monkey in monkeys], reverse=True)
 monkey_business = sorted_inspects[0] * sorted_inspects[1]
 
-print(inspects, monkey_business)
-print(monkeys)
+print(f'part-2: inspects:{inspects} monkey_business:{monkey_business}')
