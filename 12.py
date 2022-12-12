@@ -3,7 +3,7 @@ import util
 
 
 def get_data():
-    lines = util.read_lines('./12-example.data')
+    lines = util.read_lines('./12.data')
     start = None
     end = None
     rows = len(lines)
@@ -71,9 +71,7 @@ function dijkstra(G, S)
 """
 
 class WayFinder:
-    def __init__(self, start, end, board):
-        self.start_pos = start
-        self.end_pos = end
+    def __init__(self, board):
         self.board = board
         self.rows = len(board)
         self.cols = len(board[0])
@@ -87,8 +85,6 @@ class WayFinder:
                 pos = (r,c)
                 height = self.board[r][c]
                 item = TableItem(pos, height)
-                if pos == self.start_pos:
-                    item.set_steps(0, None)
                 self.table[pos] = item
 
     def add_waiting(self, pos):
@@ -140,9 +136,9 @@ class WayFinder:
     def get_item(self, pos):
         return self.table[pos]
 
-    def calc(self):
-        self.add_waiting(self.start_pos)
-        item = self.get_item(self.start_pos)
+    def calc(self, start_pos):
+        self.add_waiting(start_pos)
+        item = self.get_item(start_pos)
         item.steps = 0
 
         while len(self.waiting_pos) > 0:
@@ -158,13 +154,42 @@ class WayFinder:
             self.add_visited(current_item.pos)
             self.remove_waiting(current_item.pos)
 
+    def get_steps(self, pos):
+        item = self.get_item(pos)
+        return item.steps
 
 
-(start, end, board) = get_data()
-wayFinder = WayFinder(start, end, board)
-wayFinder.init_table()
-wayFinder.calc()
-last_item = wayFinder.get_item(wayFinder.end_pos)
-print(f'shortest way: {last_item.steps}')
 
-# print(start, end, board)
+(start_pos, end_pos, board) = get_data()
+way_finder = WayFinder(board)
+way_finder.init_table()
+
+way_finder.calc(start_pos)
+steps = way_finder.get_steps(end_pos)
+print(f'part-1: shortest way: {steps}')
+
+
+
+def get_start_positions():
+    start_positions = []
+    for r in range(len(board)):
+        for c in range(len(board[0])):
+            if board[r][c] == 1:    # eq "a"
+                start_positions.append((r,c))
+    return start_positions
+
+start_positions = get_start_positions()
+min_steps = None
+for pos in start_positions:
+    way_finder = WayFinder(board)
+    way_finder.init_table()
+    way_finder.calc(pos)
+    steps = way_finder.get_steps(end_pos)
+    print(f'start at:{pos} steps:{steps}')
+    if steps != None:
+        if min_steps == None:
+            min_steps = steps
+        else:        
+            min_steps = min(min_steps, steps)
+
+print(f'part-2: shortest way: {min_steps}')
