@@ -59,96 +59,97 @@ ORDER_BAD = 2
 ORDER_CONTINUE = 3
 
 def order_correct(left, right):
-  # True if left < right
-  # True if len(left) < len(right)
-  left_len = len(left)
-  right_len = len(right)
-  for i in range( min(left_len, right_len)):
-    l = left[i]
-    r = right[i]
-    l_isdec = l.isdecimal()
-    r_isdec = r.isdecimal()
-    if l_isdec and r_isdec:
-      l_val = int(l)
-      r_val = int(r)
-      if l_val < r_val:
-        return ORDER_OK
-      if l_val > r_val:
-        return ORDER_BAD
-    elif l_isdec and not r_isdec:
-      left_list = '[' + l + ']'
-      return order_correct(left_list, r)      
-    elif not l_isdec and r_isdec:
-      right_list = '[' + r + ']'
-      return order_correct(l, right_list)
-    elif not l_isdec and not r_isdec:
-      # both are lists
-      left_items = get_items(l)
-      right_items = get_items(r)
-      order = order_correct(left_items, right_items)
+  l_isdec = left.isdecimal()
+  r_isdec = right.isdecimal()
+  if l_isdec and r_isdec:
+    l_val = int(left)
+    r_val = int(right)
+    if l_val < r_val:
+      return ORDER_OK
+    elif l_val > r_val:
+      return ORDER_BAD
+    else:
+      return ORDER_CONTINUE
+  elif l_isdec and not r_isdec:
+    return order_correct("[" + left + "]", right)      
+  elif not l_isdec and r_isdec:
+    return order_correct(left, "[" + right + "]")
+  elif not l_isdec and not r_isdec:
+    # both are lists
+    left_items = get_items(left)
+    right_items = get_items(right)
+    left_len = len(left_items)
+    right_len = len(right_items)
+    for i in range( min(left_len, right_len)):
+      l = left_items[i]
+      r = right_items[i]
+      order = order_correct(l, r)
       if order != ORDER_CONTINUE:
         return order
-  if left_len < right_len:
-    return ORDER_OK
-  elif right_len < left_len:
-    return ORDER_BAD
+        
+    if left_len < right_len:
+      return ORDER_OK
+    elif left_len > right_len:
+      return ORDER_BAD
+    else:
+      return ORDER_CONTINUE
+
   else:
-    return ORDER_CONTINUE
-    
+    raise Exception(f'bad situation')
 
 def test_order_correct_1():
   left = "[1,1,3,1,1]"
   right = "[1,1,5,1,1]"
-  correct = order_correct([left], [right])
+  correct = order_correct(left, right)
   assert correct == ORDER_OK
 
 def test_order_correct_3():
   left = "[[1],[2,3,4]]"
   right = "[[1],4]"
-  correct = order_correct([left], [right])
+  correct = order_correct(left, right)
   assert correct == ORDER_OK
 
 def test_order_correct_3():
   left = "[9]"
   right = "[[8,7,6]]"
-  correct = order_correct([left], [right])
+  correct = order_correct(left, right)
   assert correct == ORDER_BAD
 
 def test_order_correct_4():
   left = "[[4,4],4,4]"
   right = "[[4,4],4,4,4]"
-  correct = order_correct([left], [right])
+  correct = order_correct(left, right)
   assert correct == ORDER_OK
 
 def test_order_correct_5():
   left = "[7,7,7,7]"
   right = "[7,7,7]"
-  correct = order_correct([left], [right])
+  correct = order_correct(left, right)
   assert correct == ORDER_BAD
 
 def test_order_correct_6():
   left = "[]"
   right = "[3]"
-  correct = order_correct([left], [right])
+  correct = order_correct(left, right)
   assert correct == ORDER_OK
 
 def test_order_correct_7():
   left = "[[[]]]"
   right = "[[]]"
-  correct = order_correct([left], [right])
+  correct = order_correct(left, right)
   assert correct == ORDER_BAD
 
 def test_order_correct_8():
   left = "[1,[2,[3,[4,[5,6,7]]]],8,9]"
   right = "[1,[2,[3,[4,[5,6,0]]]],8,9]"
-  correct = order_correct([left], [right])
+  correct = order_correct(left, right)
   assert correct == ORDER_BAD
 
 def test_order_correct_test():
 
   left = "[[[1,6,[1,9,0,9],6]]]"
   right = "[[],[[[5,6,3],6,[6,5,3,3]],8,3],[],[4]]"
-  correct = order_correct([left], [right])
+  correct = order_correct(left, right)
   assert correct == ORDER_BAD
 
 
@@ -163,7 +164,7 @@ class Pair:
   def order_correct(self):
     left_items = get_items(self.left)
     right_items = get_items(self.right)
-    return order_correct(left_items, right_items) == ORDER_OK
+    return order_correct(self.left, self.right) == ORDER_OK
 
 
 def get_data():
@@ -182,7 +183,7 @@ def get_data():
   return pairs
 
 
-test_order_correct_7()
+test_order_correct_1()
 
 pairs = get_data()
 idx = 0
