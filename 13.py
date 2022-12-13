@@ -1,4 +1,5 @@
 import util
+from functools import cmp_to_key
 
 STATE_START = 1
 STATE_READ_ITEMS = 2
@@ -183,7 +184,7 @@ def get_data():
   return pairs
 
 
-test_order_correct_1()
+# test_order_correct_1()
 
 pairs = get_data()
 idx = 0
@@ -191,7 +192,29 @@ total = 0
 for pair in pairs:
   idx += 1
   if pair.order_correct():
-    print(f'pair with index:{idx} is ok')
+    # print(f'pair with index:{idx} is ok')
     total += idx
-print(f'total ok pairs: {total}')
+print(f'part-1: total ok pairs: {total}')
 
+all = []
+for pair in pairs:
+  all.append(pair.left)
+  all.append(pair.right)
+
+divider_packages = [
+"[[2]]",
+"[[6]]"
+]
+all.extend(divider_packages)
+
+def compare(a, b):
+  order = order_correct(a, b)
+  if order == ORDER_OK:
+    return -1
+  else:
+    return 1
+
+all.sort(key=cmp_to_key(compare))
+idx_1 = 1+ all.index(divider_packages[0])
+idx_2 = 1+ all.index(divider_packages[1])
+print(f'part-2 decoder key: {idx_1 * idx_2}')
