@@ -21,16 +21,24 @@ class Sensor:
     if delta > self.dist:
       return []
 
-    min_y = self.sensor_pos.y - self.dist
-    max_y = self.sensor_pos.y + self.dist
-    if y < min_y or max_y < y:
-      return []
+    # min_y = self.sensor_pos.y - self.dist
+    # max_y = self.sensor_pos.y + self.dist
+    # if y < min_y or max_y < y:
+    #   return []
 
     dx = abs(self.dist - delta)
     covered_x_values = [x for x in range(self.sensor_pos.x-dx, self.sensor_pos.x+dx +1)]
     return covered_x_values
 
+  def get_covered_x_interval(self, min_x, max_x, y):
+    delta = abs(y - self.sensor_pos.y)
+    if delta > self.dist:
+      return None
 
+    dx = abs(self.dist - delta)
+    rg = (self.sensor_pos.x-dx, self.sensor_pos.x+dx)
+    return rg
+    
 
 def get_data():
   lines = util.read_lines('./15.data')
@@ -63,10 +71,14 @@ beacon_xs = [s.beacon_pos.x for s in sensors]
 min_x = min(beacon_xs)
 max_x = max(beacon_xs)
 
-all_x_values = set()
-for sensor in sensors:
-  covered_x_values = sensor.calc_covered_x_values(y)
-  all_x_values.update(set(covered_x_values))
+def get_covered_x_values(sensors, y):
+  all_x_values = set()
+  for sensor in sensors:
+    covered_x_values = sensor.calc_covered_x_values(y)
+    all_x_values.update(set(covered_x_values))
+  return all_x_values
+
+all_x_values = get_covered_x_values(sensors, y)
 
 for sensor in sensors:
   if sensor.sensor_pos.y == y:
@@ -84,3 +96,22 @@ all = sorted([x for x in all_x_values])
 count = len(all_x_values)
 
 print(f'part-1 free positions: {count}')
+
+# part-2
+
+sensors = get_data()
+min_x = 0
+max_x = 4000000
+for y in range(min_x, max_x+1):
+  interval = util.Interval(min_x, max_x)
+  for sensor in sensors:
+    iv = sensor.get_covered_x_interval(min_x, max_x, y)
+    if iv != None:
+      interval.cut_out(iv[0], iv[1])
+  if len(interval.intervals) > 0:
+    print(y, interval.intervals) 
+    x = interval.intervals[0][0]
+    tuning_frequency = x * 4000000 + y
+    print(f'part-2 tuning frequency: {tuning_frequency}') 
+
+
