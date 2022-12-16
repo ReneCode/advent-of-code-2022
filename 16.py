@@ -5,6 +5,9 @@ time_left = 30
 time_to_move_room = 1
 time_to_close_valve = 1
 
+START_NAME  = "AA"
+
+
 # total_pressure = time * rate
 
 class Valve:
@@ -16,7 +19,7 @@ class Valve:
 
 def get_data():
   valves = []
-  lines = util.read_lines("./16-example.data")
+  lines = util.read_lines("./16.data")
   for line in lines:
     tok = line.split(" ")
     name = tok[1]
@@ -32,6 +35,15 @@ def get_data():
   return valves
 
 
+class Path:
+  def __init__(self, visited_names, target_names, time_left, pressure):
+    self.visited_names = visited_names
+    self.target_names = target_names
+    self.pressure = pressure
+    self.time_left = time_left
+
+  def get_current_name(self):
+    return self.visited_names[-1]
 
 class WayFinder:
   def __init__(self, valves):
@@ -75,16 +87,12 @@ class WayFinder:
       visited.add(cur_name)
     return None
 
-
-
-
-
   def get_new_graph(self):
     rooms = [v for v in self.valves if v.rate > 0]
 
     # add first value
-    if self.valves[0].rate == 0:
-      rooms.append(self.valves[0])
+    start_valve = self.get_valve(START_NAME)
+    rooms.append(start_valve)
 
     result = {}
     for idx_start in range(0, len(rooms)):
@@ -102,49 +110,34 @@ class WayFinder:
   def calc_best_way(self):
     graph = self.get_new_graph()
 
-    first_name = self.valves[0].name
+    first_name = START_NAME
     target_names = [i for i in graph if i != first_name]
-    time_left = 30
-    total_ben = 0
+    START_TIME_LEFT = 30
 
-    print(f'start:{first_name}')
-
-    cur_name = first_name
-
-    while len(target_names) > 0:
-      max_ben = 0
-      move_to = None
-      take_way_cost = None
-      for target_name in target_names:
+    path = Path([first_name], target_names, START_TIME_LEFT, 0)
+    all_path = [path]
+    for path in all_path:
+      current_name = path.get_current_name()
+      if path.time_left <= 0:
+        continue
+      for target_name in path.target_names:
         rate = self.get_valve(target_name).rate
-        way_cost = graph[cur_name][target_name]
-        ben = (time_left - way_cost -1) * rate
-        if ben > max_ben:
-          move_to = target_name
-          max_ben = ben
-          take_way_cost = way_cost
+        way_cost = graph[current_name][target_name]
+        pressure = (path.time_left - way_cost -1) * rate
+        new_time_left = path.time_left - way_cost -1
+        new_target_names = [name for name in path.target_names if name != target_name]
+        new_visited_names = path.visited_names + [target_name]
+        new_pressure = path.pressure + pressure 
+        new_path = Path(new_visited_names, new_target_names, new_time_left, new_pressure)
+        all_path.append(new_path)
 
-      if move_to != None:        
-        print(f'move to:{move_to}')
-        # remove from target
-        target_names = [name for name in target_names if name != move_to]
-        cur_name = move_to
-        time_left -= take_way_cost
-        time_left -= 1
-        total_ben += max_ben
-    
-    print(f'total: {total_ben}')
-
-
-    
-
-
-
-
+    pressures = sorted([p.pressure for p in all_path], reverse=True)        
+    return pressures[0]
 
 
 valves = get_data()
 way_finder = WayFinder(valves)
 
 
-way_finder.calc_best_way()
+pressure = way_finder.calc_best_way()
+print(f'part-1 pressure:{pressure}')
