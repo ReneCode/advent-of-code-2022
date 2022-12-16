@@ -105,6 +105,7 @@ class WayFinder:
     first_name = self.valves[0].name
     target_names = [i for i in graph if i != first_name]
     time_left = 30
+    total_ben = 0
 
     print(f'start:{first_name}')
 
@@ -113,20 +114,27 @@ class WayFinder:
     while len(target_names) > 0:
       max_ben = 0
       move_to = None
+      take_way_cost = None
       for target_name in target_names:
         rate = self.get_valve(target_name).rate
         way_cost = graph[cur_name][target_name]
-        # -1 because of opening the valve
-        ben = rate - way_cost-1
+        ben = (time_left - way_cost -1) * rate
         if ben > max_ben:
           move_to = target_name
           max_ben = ben
+          take_way_cost = way_cost
 
       if move_to != None:        
         print(f'move to:{move_to}')
         # remove from target
         target_names = [name for name in target_names if name != move_to]
         cur_name = move_to
+        time_left -= take_way_cost
+        time_left -= 1
+        total_ben += max_ben
+    
+    print(f'total: {total_ben}')
+
 
     
 
