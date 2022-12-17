@@ -41,6 +41,8 @@ class Path:
     self.target_names = target_names
     self.pressure = pressure
     self.time_left = time_left
+    self.finshed = False
+    self.len_visited = 0
 
   def get_current_name(self):
     return self.visited_names[-1]
@@ -107,19 +109,21 @@ class WayFinder:
       result[start_name] = distances
     return result
 
-  def calc_best_way(self):
+  def calc_all_path(self, start_time_left, also_partial_path = False):
     graph = self.get_new_graph()
 
     first_name = START_NAME
     target_names = [i for i in graph if i != first_name]
-    START_TIME_LEFT = 30
 
-    path = Path([first_name], target_names, START_TIME_LEFT, 0)
+    path = Path([first_name], target_names, start_time_left, 0)
     all_path = [path]
     for path in all_path:
-      current_name = path.get_current_name()
       if path.time_left <= 0:
         continue
+      if not also_partial_path:
+        if len(path.target_names) == 0:
+          path.finshed = True
+      current_name = path.get_current_name()
       for target_name in path.target_names:
         rate = self.get_valve(target_name).rate
         way_cost = graph[current_name][target_name]
@@ -130,14 +134,44 @@ class WayFinder:
         new_pressure = path.pressure + pressure 
         new_path = Path(new_visited_names, new_target_names, new_time_left, new_pressure)
         all_path.append(new_path)
+        if also_partial_path:
+          new_partial_path = Path(new_visited_names, [], new_time_left, new_pressure)
+          path.finshed = True
+          all_path.append(new_partial_path)
+  
+    return all_path
 
-    pressures = sorted([p.pressure for p in all_path], reverse=True)        
-    return pressures[0]
 
 
 valves = get_data()
 way_finder = WayFinder(valves)
+all_path = way_finder.calc_all_path(30)
+finished_all_path = [p for p in all_path if p.finshed]
+visited_names = finished_all_path[0].visited_names
+visited_names.remove(START_NAME)
+len_all_visited = len(visited_names)
+pressures = sorted([p.pressure for p in all_path], reverse=True)        
+pressure = pressures[0]
 
-
-pressure = way_finder.calc_best_way()
 print(f'part-1 pressure:{pressure}')
+
+all_path = way_finder.calc_all_path(26, True)
+for path in all_path:
+  path.visited_names = set(path.visited_names)
+  path.visited_names.remove(START_NAME)
+  path.len_visited = len(path.visited_names)
+
+combined_pressure = 0
+for i in range(len(all_path)):
+  p1 = all_path[i]
+  for j in range(i+1, len(all_path)):
+    p2 = all_path[j]
+    length = p1.len_visited + p2.len_visited
+    if length != len_all_visited:
+      continue
+    v_both = p1.visited_names.intersection(p2.visited_names)
+    if len(v_both) == 0:
+      combined_pressure = max(combined_pressure, p1.pressure + p2.pressure)
+pressure = combined_pressure
+
+print(f'part-2 pressure:{pressure}')
