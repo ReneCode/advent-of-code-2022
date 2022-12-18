@@ -69,9 +69,12 @@ for x in range(0, chamber_width+2):
 # first move left/right
 # then fall down  (rest, if no more down possible)
 
+rocks = 1000000000000
+
 idx_air = 0
-for n_shape in range(2022):
-  idx_shape = n_shape % 5
+idx_shape = 0
+for n_shape in range(1000000):
+  idx_shape = idx_shape % 5
   shape = shapes[idx_shape]
   idx_shape += 1
   
@@ -105,7 +108,8 @@ for n_shape in range(2022):
     if len(overlap) == 0:
       shape = new_shape
     else:
-      print(f'stop shape {idx_shape}')
+      if n_shape % 1000 == 0:
+        print(f'set shape {n_shape}')
       for pos in shape:
         chamber.add(pos)
       shape_falling = False
