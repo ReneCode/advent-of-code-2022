@@ -24,29 +24,78 @@ def has_common_surface(a, b):
   return False
 
 positions = get_data()
-tested = []
 
-sides = None
-for pos in positions:
-  if sides == None:
-    tested.append(pos)
-    sides = 6
-  else:
-    sides += 6
-    for other in tested:
-      if has_common_surface(pos, other):
-        sides -= 2
-    tested.append(pos)
+def get_sides(positions):
+  tested = []
 
+  sides = None
+  for pos in positions:
+    if sides == None:
+      tested.append(pos)
+      sides = 6
+    else:
+      sides += 6
+      for other in tested:
+        if has_common_surface(pos, other):
+          sides -= 2
+      tested.append(pos)
+  return sides
+
+def is_inside(pos, cubes_set):
+  (x,y,z) = pos
+  return Position(x-1,y,z) in cubes_set and \
+         Position(x+1,y,z) in cubes_set and \
+         Position(x,y-1,z) in cubes_set and \
+         Position(x,y+1,z) in cubes_set and \
+         Position(x,y,z-1) in cubes_set and \
+         Position(x,y,z+1) in cubes_set
+
+
+
+sides = get_sides(positions)
 print(f'part-1 sides: {sides}')
 
+# part-2
+
+min_x = None
+min_y = None
+min_z = None
+max_x = None
+max_y = None
+max_z = None
+for pos in positions:
+  if min_x == None:
+    min_x = pos.x
+    max_x = pos.x
+    min_y = pos.y
+    max_y = pos.y
+    min_z = pos.z
+    max_z = pos.z
+  else:
+    min_x = min(min_x, pos.x)
+    max_x = max(max_x, pos.x)
+    min_y = min(min_y, pos.y)
+    max_y = max(max_y, pos.y)
+    min_z = min(min_z, pos.z)
+    max_z = max(max_z, pos.z)
+
+# use set to check existens quicker
+cubes_set = set()
+for pos in positions:
+  cubes_set.add(pos)
+
+air_holes = set()
+for x in range(min_x, max_x):
+  for y in range(min_y, max_y):
+    for z in range(min_z, max_z):
+      pos = Position(x,y,z)
+      if pos in cubes_set:
+        continue
+      if is_inside(pos, cubes_set):
+        air_holes.add(pos)
 
 
-# class Cube:
-#   def __init__(self, pos):
-#     # pos is bottom, left, front verticie
-#     # cube expans to top, right, back (1,1,1)
-#     self.pos = pos
 
-#   def has_common_surface(self, other):
-#     if self.pos.x == other.pos
+air_hole_sides = get_sides(air_holes)
+print(f'part-2 air holes:{air_holes} sides:{air_hole_sides}')
+print(f' => relevant sides: {sides - air_hole_sides}')
