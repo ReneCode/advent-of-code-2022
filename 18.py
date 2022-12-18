@@ -3,7 +3,6 @@ import util
 
 Position = namedtuple("Position", ['x','y','z'])
 
-
 def get_data():
   lines = util.read_lines("./18.data")
   positions = []
@@ -20,10 +19,8 @@ def has_common_surface(a, b):
     return True
   if abs(a.x - b.x) == 1 and a.y == b.y and a.z == b.z:
     return True
-
   return False
 
-positions = get_data()
 
 def get_sides(positions):
   tested = []
@@ -41,22 +38,16 @@ def get_sides(positions):
       tested.append(pos)
   return sides
 
-def is_inside(pos, cubes_set):
-  (x,y,z) = pos
-  return Position(x-1,y,z) in cubes_set and \
-         Position(x+1,y,z) in cubes_set and \
-         Position(x,y-1,z) in cubes_set and \
-         Position(x,y+1,z) in cubes_set and \
-         Position(x,y,z-1) in cubes_set and \
-         Position(x,y,z+1) in cubes_set
 
+positions = get_data()
 
-
+# part-1
 sides = get_sides(positions)
 print(f'part-1 sides: {sides}')
 
 # part-2
 
+# get bounding box
 min_x = None
 min_y = None
 min_z = None
@@ -79,23 +70,54 @@ for pos in positions:
     min_z = min(min_z, pos.z)
     max_z = max(max_z, pos.z)
 
-# use set to check existens quicker
-cubes_set = set()
-for pos in positions:
-  cubes_set.add(pos)
 
-air_holes = set()
-for x in range(min_x, max_x):
-  for y in range(min_y, max_y):
-    for z in range(min_z, max_z):
-      pos = Position(x,y,z)
-      if pos in cubes_set:
-        continue
-      if is_inside(pos, cubes_set):
-        air_holes.add(pos)
+def get_neighbours(pos, min_x, min_y, min_z, max_x, max_y, max_z ):
+  (x,y,z) = pos
+  neighbours = []
+  if x>min_x:
+    neighbours.append(Position(x-1,y,z))
+  if x<max_x:
+    neighbours.append(Position(x+1,y,z))
+  if y>min_y:
+    neighbours.append(Position(x,y-1,z))
+  if y<max_y:
+    neighbours.append(Position(x,y+1,z))
+  if z>min_z:
+    neighbours.append(Position(x,y,z-1))
+  if z<max_z:
+    neighbours.append(Position(x,y,z+1))
+  return neighbours
 
+# flood fill
+min_x -= 1 
+max_x += 1 
+min_y -= 1
+max_y += 1
+min_z -= 1
+max_z += 1
 
+cube_set = set(positions)
 
-air_hole_sides = get_sides(air_holes)
-print(f'part-2 air holes:{air_holes} sides:{air_hole_sides}')
-print(f' => relevant sides: {sides - air_hole_sides}')
+sides_from_outside = 0
+outside_cubes = set()
+que = []
+pos = Position(min_x, min_y, min_z)
+que.append(pos)
+visited = set()
+# flood fill
+# if reached a cube (cube_set) than it will reach it comming from exact on side
+# do not make redundant neighbour test - use visited
+while len(que) > 0:
+  pos = que.pop(0)
+  (x,y,z) = pos
+  neighbours = get_neighbours(pos, min_x, min_y, min_z, max_x, max_y, max_z)
+  for neighbour in neighbours:
+    if not neighbour in visited:
+      if neighbour in cube_set:
+        sides_from_outside += 1
+      else:
+        que.append(neighbour)
+        visited.add(neighbour)
+
+print(f'part-2 sides: {sides_from_outside}')
+
