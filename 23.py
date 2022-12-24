@@ -122,44 +122,49 @@ def print_positions(positions):
     print(line)
 
 
+def calc_round(positions, check_direction):
+  elves = [Elve(pos) for pos in positions]
+  # first: consider new position
+  for elve in elves:
+    if is_free_around(positions, elve.pos):
+      elve.set_new_pos(elve.pos)
+    else:
+      new_pos = get_new_pos(positions, elve.pos, check_direction)
+      elve.set_new_pos(new_pos)
+
+  # second: move to new position
+  # count elves per new position
+  all_targets = {}
+  for elve in elves:
+    new_pos = elve.new_pos
+    if all_targets.get(new_pos) == None:
+      all_targets[new_pos] = 1
+    else:
+      all_targets[new_pos] += 1
+
+  new_positions = set()
+  for elve in elves:
+    new_pos = elve.new_pos
+    if all_targets.get(new_pos) == 1:
+      # only one elve want to go to that new position
+      new_positions.add(new_pos)
+    else:
+      # otherwise keep the old position
+      new_positions.add(elve.pos)
+  positions = new_positions
+  # next round start with next direction
+  check_direction = (check_direction + 1) % 4
+
+  return (positions, check_direction)
+
+
 def part_1():
   positions = get_data()
   start_check_direction = CHECK_NORTH
   print_positions(positions)
   check_direction = start_check_direction
   for r in range(10):
-    elves = [Elve(pos) for pos in positions]
-    # first: consider new position
-    for elve in elves:
-      if is_free_around(positions, elve.pos):
-        elve.set_new_pos(elve.pos)
-      else:
-        new_pos = get_new_pos(positions, elve.pos, check_direction)
-        elve.set_new_pos(new_pos)
-
-    # second: move to new position
-    # count elves per new position
-    all_targets = {}
-    for elve in elves:
-      new_pos = elve.new_pos
-      if all_targets.get(new_pos) == None:
-        all_targets[new_pos] = 1
-      else:
-        all_targets[new_pos] += 1
-
-    new_positions = set()
-    for elve in elves:
-      new_pos = elve.new_pos
-      if all_targets.get(new_pos) == 1:
-        # only one elve want to go to that new position
-        new_positions.add(new_pos)
-      else:
-        # otherwise keep the old position
-        new_positions.add(elve.pos)
-    positions = new_positions
-    # next round start with next direction
-    check_direction = (check_direction + 1) % 4
-
+    (positions, check_direction) = calc_round(positions, check_direction)
     print(f'\n---- after finished round: {r+1} ----')
     print_positions(positions)
 
@@ -175,5 +180,22 @@ def part_1():
   print(f'part-1 total empty tiles: {total_empty}')
 
 
+def part_2():
+  positions = get_data()
+  start_check_direction = CHECK_NORTH
+  print_positions(positions)
+  check_direction = start_check_direction
+  round = 0
+  while True:
+    round += 1
+    previous_positions = positions
+    (positions, check_direction) = calc_round(positions, check_direction)
+    print(f'\n---- after finished round: {round} ----')
+    print_positions(positions)
+    if previous_positions == positions:
+      break
+  print(f'part-2 stable position after {round} rounds')
 
-part_1()
+
+# part_1()
+part_2()
