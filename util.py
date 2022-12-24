@@ -45,6 +45,14 @@ class BoundingBox:
       self.min_y = min(self.min_y, y)
       self.max_y = max(self.max_y, y)
 
+  def inside(self, x, y):
+    if x < self.min_x or x > self.max_x:
+      return False
+    if y < self.min_y or y > self.max_y:
+      return False
+    return True
+    
+
 def sort_interval(interval):
   l = min(interval[0], interval[1])
   r = max(interval[0], interval[1])
