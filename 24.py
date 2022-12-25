@@ -116,7 +116,7 @@ class Board:
     return False
 
 def get_data():
-  lines = util.read_lines("./24-example.data")
+  lines = util.read_lines("./24.data")
   x_len = len(lines[0])
   y_len = len(lines)
   x = lines[0].index(TILE_FREE)
@@ -136,6 +136,16 @@ def get_data():
   board = Board(start, 0, field)
   return (board, field)
 
+def remove_boards_with_same_position(boards):
+  me_positions = set()
+  new_boards = []
+  for board in boards:
+    me_pos = board.me
+    if not me_pos in me_positions:
+      me_positions.add(me_pos)
+      new_boards.append(board)
+  return new_boards
+
 
 (start_board, field) = get_data()
 
@@ -148,6 +158,7 @@ finished = False
 while not finished:
   prev_count = len(boards)
   boards = [b for b in boards if not b.kill ]
+  boards = remove_boards_with_same_position(boards)
   print(f'reduce boards from {prev_count} => {len(boards)}')
   field.calc_next_positions()
   new_boards = []
