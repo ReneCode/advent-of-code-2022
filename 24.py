@@ -56,10 +56,9 @@ class Field:
 
 
 class Board:
-  def __init__(self, me, minute, field):
+  def __init__(self, me, field):
     self.field = field
     self.me = me
-    self.minute = minute
     self.finished = False
     self.kill = False
 
@@ -87,7 +86,7 @@ class Board:
         line += out
       print(line)
 
-  def get_next_me(self):
+  def get_next_me(self, goal_end):
     next_pos = [
       self.me,
       Position(self.me.x,self.me.y-1),
@@ -97,21 +96,20 @@ class Board:
     ]
     result = []
     for pos in next_pos:
-      if pos == self.field.end:
+      if pos == goal_end:
         # final position !
         return [pos]
-      if self.field.bbox.inside(pos.x, pos.y):
+      if pos == self.me or self.field.bbox.inside(pos.x, pos.y):
         if self.field.positions.get(pos) == None:
           result.append(pos)
     return result
 
-  def set_me(self, me):
-    self.minute += 1
+  def set_me(self, me, goal):
     self.me = me
-    if self.me == self.field.end:
+    if self.me == goal:
       self.finished = True
       self.print()
-      print(" ************** finish in minute ", self.minute)
+      print(" ************** finished ")
       return True
     return False
 
@@ -133,8 +131,7 @@ def get_data():
   bbox.add_pos(1,1)
   bbox.add_pos(x_len-2, y_len-2)
   field = Field(positions, bbox, start, end)
-  board = Board(start, 0, field)
-  return (board, field)
+  return field
 
 def remove_boards_with_same_position(boards):
   me_positions = set()
@@ -147,39 +144,49 @@ def remove_boards_with_same_position(boards):
   return new_boards
 
 
-(start_board, field) = get_data()
+field = get_data()
 
 print('==== start ====')
-start_board.print()
-boards = []
-boards.append(start_board)
-finished = False
-
-while not finished:
-  prev_count = len(boards)
-  boards = [b for b in boards if not b.kill ]
-  boards = remove_boards_with_same_position(boards)
-  print(f'reduce boards from {prev_count} => {len(boards)}')
-  field.calc_next_positions()
-  new_boards = []
-  for board in boards:
-    next_free_positions = board.get_next_me()
-    if len(next_free_positions) == 0:
-      board.kill = True
-    minute = board.minute
-    for i in range(len(next_free_positions)):
-      if i == 0:
-        if board.set_me(next_free_positions[i]):
-          finished = True
-          break
-      else:
-        new_board = Board(None, minute, field)
-        if new_board.set_me(next_free_positions[i]):
-          finished = True
-          break
-        new_boards.append(new_board)
-    if finished:
-      break
-  boards.extend(new_boards)
+goals = [ 
+  (field.start, field.end),
+  ###############################
+  # next two lines are for part-2 
+  # (field.end, field.start),
+  # (field.start, field.end),
+]
+minute = 0
+while len(goals) > 0:
+  (goal_start, goal_end) = goals.pop(0)
+  first_board = Board(goal_start, field)
+  first_board.print()
+  boards = [first_board]
+  finished = False
+  while not finished:
+    minute += 1
+    prev_count = len(boards)
+    boards = [b for b in boards if not b.kill ]
+    boards = remove_boards_with_same_position(boards)
+    print(f'Minute: {minute}, reduce boards from {prev_count} => {len(boards)}')
+    field.calc_next_positions()
+    new_boards = []
+    for board in boards:
+      next_free_positions = board.get_next_me(goal_end)
+      if len(next_free_positions) == 0:
+        board.kill = True
+      for i in range(len(next_free_positions)):
+        if i == 0:
+          if board.set_me(next_free_positions[i], goal_end):
+            finished = True
+            break
+        else:
+          new_board = Board(None, field)
+          if new_board.set_me(next_free_positions[i], goal_end):
+            finished = True
+            break
+          new_boards.append(new_board)
+      # board.print()
+      if finished:
+        break
+    boards.extend(new_boards)
 
 print(f'finished !!!')
