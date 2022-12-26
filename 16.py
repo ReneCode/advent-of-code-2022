@@ -109,7 +109,7 @@ class WayFinder:
       result[start_name] = distances
     return result
 
-  def calc_all_path(self, start_time_left, also_partial_path = False):
+  def calc_all_path(self, start_time_left):
     graph = self.get_new_graph()
 
     first_name = START_NAME
@@ -120,9 +120,7 @@ class WayFinder:
     for path in all_path:
       if path.time_left <= 0:
         continue
-      if not also_partial_path:
-        if len(path.target_names) == 0:
-          path.finshed = True
+      
       current_name = path.get_current_name()
       for target_name in path.target_names:
         rate = self.get_valve(target_name).rate
@@ -134,10 +132,6 @@ class WayFinder:
         new_pressure = path.pressure + pressure 
         new_path = Path(new_visited_names, new_target_names, new_time_left, new_pressure)
         all_path.append(new_path)
-        if also_partial_path:
-          new_partial_path = Path(new_visited_names, [], new_time_left, new_pressure)
-          path.finshed = True
-          all_path.append(new_partial_path)
   
     return all_path
 
@@ -146,32 +140,28 @@ class WayFinder:
 valves = get_data()
 way_finder = WayFinder(valves)
 all_path = way_finder.calc_all_path(30)
-finished_all_path = [p for p in all_path if p.finshed]
-visited_names = finished_all_path[0].visited_names
-visited_names.remove(START_NAME)
-len_all_visited = len(visited_names)
 pressures = sorted([p.pressure for p in all_path], reverse=True)        
 pressure = pressures[0]
 
 print(f'part-1 pressure:{pressure}')
 
-all_path = way_finder.calc_all_path(26, True)
-for path in all_path:
-  path.visited_names = set(path.visited_names)
-  path.visited_names.remove(START_NAME)
-  path.len_visited = len(path.visited_names)
+# all_path = way_finder.calc_all_path(26, True)
+# for path in all_path:
+#   path.visited_names = set(path.visited_names)
+#   path.visited_names.remove(START_NAME)
+#   path.len_visited = len(path.visited_names)
 
-combined_pressure = 0
-for i in range(len(all_path)):
-  p1 = all_path[i]
-  for j in range(i+1, len(all_path)):
-    p2 = all_path[j]
-    length = p1.len_visited + p2.len_visited
-    if length != len_all_visited:
-      continue
-    v_both = p1.visited_names.intersection(p2.visited_names)
-    if len(v_both) == 0:
-      combined_pressure = max(combined_pressure, p1.pressure + p2.pressure)
-pressure = combined_pressure
+# combined_pressure = 0
+# for i in range(len(all_path)):
+#   p1 = all_path[i]
+#   for j in range(i+1, len(all_path)):
+#     p2 = all_path[j]
+#     length = p1.len_visited + p2.len_visited
+#     if length != len_all_visited:
+#       continue
+#     v_both = p1.visited_names.intersection(p2.visited_names)
+#     if len(v_both) == 0:
+#       combined_pressure = max(combined_pressure, p1.pressure + p2.pressure)
+# pressure = combined_pressure
 
-print(f'part-2 pressure:{pressure}')
+# print(f'part-2 pressure:{pressure}')
