@@ -1,4 +1,5 @@
 import util
+from itertools import combinations
 
 time_left = 30
 
@@ -34,23 +35,6 @@ def get_data():
     valves.append(valve)
   return valves
 
-
-def get_touple_names(names):
-  if len(names) < 2:
-    raise Exception(f'get_double_targets not enough names')
-  results = []
-  for n1 in names:
-    rest_names = [n for n in names if n != n1]
-    for n2 in rest_names:
-      results.append( (n1, n2))
-  return results
-
-
-def test_1():
-  names = ['a','b','c']
-  touple_names = get_touple_names(names)
-  touple_names = [('a','b'),('a','c'),('b','a'),('b','c'),('c','a'),('c','b')]
-
 class Path:
   def __init__(self, visited_names, target_names, time_left, pressure):
     self.visited_names = visited_names
@@ -62,9 +46,6 @@ class Path:
   def get_current_name(self):
     return self.visited_names[-1]
 
-IDX_ME = 0
-IDX_ELEPHANT = 1
-
 
 class MinutePath:
   def __init__(self, current_name, current_target_name, target_names, pressure, moving_time):
@@ -75,17 +56,7 @@ class MinutePath:
     self.moving_time = moving_time
     self.visited = []
 
-class DoublePath:
-  def __init__(self, visited_names, target_names, times_left, pressure):
-    self.visited_names = visited_names
-    self.target_names = target_names
-    self.pressure = pressure
-    self.times_left = times_left
-    self.finshed = False
 
-  def get_current_names(self):
-    return [self.visited_names[0][-1],self.visited_names[1][-1]]
-    
 class WayFinder:
   def __init__(self, valves):
     self.valves = valves
@@ -148,6 +119,8 @@ class WayFinder:
       result[start_name] = distances
     return result
 
+  # algorithm that sums up all pressures on visited nodes
+  # time is 'jumping' with the time to go from current node to target node
   def calc_all_single_path(self, start_time_left):
     graph = self.get_new_graph()
 
@@ -174,11 +147,13 @@ class WayFinder:
   
     return all_path
 
-  def calc_all_minute_path(self, start_time_left):
+  # this algorithm is "ticked" on each minute
+  # so on each minute we have to decide what to do (or just continue to walk to the target)
+  def calc_all_minute_path(self, start_name, start_time_left, already_visited):
     graph = self.get_new_graph()
-    first_name = START_NAME
-    start_target_names = [i for i in graph if i != first_name]
-    path = MinutePath(None, first_name, start_target_names, 0, 0)
+    start_target_names = [i for i in graph if i != start_name]
+    start_target_names = [i for i in start_target_names if not i in already_visited]
+    path = MinutePath(None, start_name, start_target_names, 0, 0)
     all_path = [path]
     minutes_left = start_time_left
     while minutes_left > 0:
@@ -224,49 +199,11 @@ class WayFinder:
       minutes_left -= 1
     return all_path
 
-
-
-  def calc_all_double_path(self, start_time_left):
-    graph = self.get_new_graph()
-
-    first_name = START_NAME
-    target_names = [i for i in graph if i != first_name]
-
-    path = DoublePath([[first_name], [first_name]], target_names, [start_time_left,start_time_left], 0)
-    all_path = [path]
-    for path in all_path:
-      if path.times_left[0] <= 0 or path.times_left[1] <= 0:
-        continue
-      if len(path.target_names) == 0:
-        continue
-
-      names = path.get_current_names()
-      double_targets = get_touple_names(path.target_names)
-      new_target_names = None
-      new_pressure = path.pressure
-
-      for double_target in double_targets:
-        new_time_left_list = []
-        new_visited_names = []
-        new_target_names = path.target_names
-        for idx in range(2):
-          target_name = double_target[idx]
-          current_name = names[idx]
-          rate = self.get_valve(target_name).rate
-          way_cost = graph[current_name][target_name]
-          pressure = (path.times_left[idx] - way_cost -1) * rate
-          new_time_left = path.times_left[idx] - way_cost -1
-          new_time_left_list.append(new_time_left)
-          new_target_names = [name for name in new_target_names if name != target_name]
-          new_pressure = new_pressure + pressure 
-          new_visited_names.append( path.visited_names[idx] + [double_target[idx]] )
-        new_path = DoublePath(new_visited_names,
-                new_target_names, 
-                new_time_left_list, 
-                new_pressure)
-        all_path.append(new_path)
-  
-    return all_path
+  def get_best_path(self, start_name, time_left, visited):
+    all_path = self.calc_all_minute_path(start_name, time_left, visited)
+    all_path = sorted(all_path, reverse=True, key=lambda p: p.pressure)        
+    best_path = all_path[0]
+    return best_path
 
 def part_1():
   valves = get_data()
@@ -279,9 +216,30 @@ def part_1():
 def part_2():
   valves = get_data()
   way_finder = WayFinder(valves)
-  all_path = way_finder.calc_all_minute_path(30)
-  pressures = sorted([p.pressure for p in all_path], reverse=True)        
-  pressure = pressures[0]
-  print(f'part-2 pressure:{pressure}')
 
+  graph = way_finder.get_new_graph()
+  all_names = [name for name in graph if name != START_NAME]
+  max_pressure = 0
+  best_way = None
+  for comb_count in range(1, (len(all_names)//2)+1):
+    all_combinations = combinations(all_names, comb_count)
+    for my_targets in all_combinations:
+      ele_targets = [name for name in all_names if not name in my_targets]
+
+      my_best_path = way_finder.get_best_path(START_NAME, 26, ele_targets)
+      ele_best_path = way_finder.get_best_path(START_NAME, 26, my_targets)
+      my_pressure = my_best_path.pressure
+      ele_pressure = ele_best_path.pressure
+      pressure = my_pressure + ele_pressure
+      way = f'me:{my_targets} => {my_pressure} elephant:{ele_targets} => {ele_pressure} result:{pressure} (max:{max_pressure})'
+      print(way)
+      if pressure > max_pressure:
+        max_pressure = pressure
+        best_way = way
+
+  print()
+  print(best_way)
+
+
+part_1()
 part_2()
