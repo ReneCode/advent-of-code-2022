@@ -67,12 +67,12 @@ IDX_ELEPHANT = 1
 
 
 class MinutePath:
-  def __init__(self, current_name, current_target_name, target_names, pressure, moving_time):
-    self.current_name = current_name
-    self.current_target_name = current_target_name
+  def __init__(self, current_names, current_target_names, target_names, pressure, moving_times):
+    self.current_names = current_names
+    self.current_target_names = current_target_names
     self.target_names = target_names
     self.pressure = pressure
-    self.moving_time = moving_time
+    self.moving_times = moving_times
     self.visited = []
 
 class DoublePath:
@@ -178,48 +178,81 @@ class WayFinder:
     graph = self.get_new_graph()
     first_name = START_NAME
     start_target_names = [i for i in graph if i != first_name]
-    path = MinutePath(None, first_name, start_target_names, 0, 0)
+    path = MinutePath([None, None], [first_name, first_name], start_target_names, 0, [0,0])
     all_path = [path]
     minutes_left = start_time_left
     while minutes_left > 0:
       next_all_path = []
       for path in all_path:
         if len(path.target_names) == 0:
+          # path has finished
           next_all_path.append(path)
-        elif path.moving_time > 0:
+          continue
+        if path.moving_times[IDX_ME] > 0 and path.moving_times[IDX_ELEPHANT] > 0:
           # still moving
-          path.moving_time -= 1
+          path.moving_times[IDX_ME] -= 1
+          path.moving_times[IDX_ELEPHANT] -= 1
           next_all_path.append(path)
 
-        elif path.moving_time == 0:
-          # target reached
-          target_names = path.target_names
-          current_name = path.current_target_name
-          if current_name in path.visited:
-            raise Exception('ups duplicate visit', current_name)
-          path.visited = path.visited + [current_name]
-          if current_name in target_names:
-            # remove it from tagets
-            target_names = [n for n in target_names if n != current_name]
-            # calc pressure
-            rate = self.get_valve(current_name).rate
-            pressure = minutes_left * rate
-            path.pressure += pressure
-          
-          if len(target_names) == 0:
-            path.target_names = []
-            next_all_path.append(path)
-
-          for new_target_name in target_names:
-            if new_target_name in path.visited:
-              raise Exception(f'ups do not target already visited node {new_target_name}')
-            moving_time = graph[current_name][new_target_name]
-            # remaining_target_names = [n for n in target_names if n != new_target_name]
-            new_path = MinutePath(current_name, new_target_name, target_names, path.pressure, moving_time)
-            new_path.visited = path.visited
-            next_all_path.append(new_path)
         else:
-          raise Exception('bad minutes')
+          # target reached
+          # calc new pressure
+          for idx in range(IDX_ME, IDX_ELEPHANT+1):
+            if path.moving_times[idx] == 0:
+              current_name = path.current_target_names[idx]
+              if current_name in path.target_names:
+                path.visited = path.visited + [current_name]
+                # remove it from tagets
+                path.target_names = [n for n in path.target_names if n != current_name]
+                # calc pressure
+                rate = self.get_valve(current_name).rate
+                pressure = minutes_left * rate
+                path.pressure += pressure
+            
+              if len(path.target_names) == 0:
+                # finished
+                next_all_path.append(path)
+                continue
+
+          if path.moving_times[IDX_ME] == 0 and path.moving_times[IDX_ELEPHANT] == 0:
+            current_name_me = path.current_target_names[IDX_ME]
+            current_name_elephant = path.current_target_names[IDX_ELEPHANT]
+            for new_target_name_me in path.target_names:
+              moving_time_me = graph[current_name_me][new_target_name_me]
+              for new_target_name_elephant in path.target_names:
+                moving_time_elephant = graph[current_name_elephant][new_target_name_elephant]
+                new_path = MinutePath(
+                    [current_name_me, current_name_elephant], 
+                    [new_target_name_me, new_target_name_elephant], 
+                    path.target_names, path.pressure, 
+                    [moving_time_me, moving_time_elephant])
+                next_all_path.append(new_path)
+
+          elif path.moving_times[IDX_ME] == 0 and path.moving_times[IDX_ELEPHANT] > 0:
+            current_name = path.current_target_names[IDX_ME]
+            for new_target_name in path.target_names:
+              moving_time = graph[current_name][new_target_name]
+              new_path = MinutePath(
+                  [current_name, path.current_names[IDX_ELEPHANT]], 
+                  [new_target_name, path.current_target_names[IDX_ELEPHANT]], 
+                  path.target_names, path.pressure, 
+                  [moving_time, path.moving_times[IDX_ELEPHANT]-1])
+              next_all_path.append(new_path)
+
+          elif path.moving_times[IDX_ME] > 0 and path.moving_times[IDX_ELEPHANT] == 0:
+            current_name = path.current_target_names[IDX_ELEPHANT]
+            for new_target_name in path.target_names:
+              moving_time = graph[current_name][new_target_name]
+              new_path = MinutePath(
+                  [path.current_names[IDX_ME], current_name], 
+                  [path.current_target_names[IDX_ME], new_target_name], 
+                  path.target_names, path.pressure, 
+                  [path.moving_times[IDX_ME]-1, moving_time])
+              next_all_path.append(new_path)
+          else:
+            raise Exception(f'ups')
+
+      print(f'minutes left: {minutes_left} count path: {len(next_all_path)}')
       all_path = next_all_path
       minutes_left -= 1
     return all_path
@@ -279,7 +312,7 @@ def part_1():
 def part_2():
   valves = get_data()
   way_finder = WayFinder(valves)
-  all_path = way_finder.calc_all_minute_path(30)
+  all_path = way_finder.calc_all_minute_path(26)
   pressures = sorted([p.pressure for p in all_path], reverse=True)        
   pressure = pressures[0]
   print(f'part-2 pressure:{pressure}')
