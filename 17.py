@@ -54,6 +54,15 @@ def get_shape_max_y(shape):
       max_y = max(max_y, pos.y)
   return max_y
 
+def get_watermark(chamber):
+  watermark = [-1 for i in range(0, 7)]
+  for pos in chamber:
+    if pos.x >= 0 and pos.x <= 6:
+      watermark[pos.x] = max(watermark[pos.x], pos.y)
+  min_y = min(watermark)
+  watermark = [i-min_y for i in watermark]
+  return watermark
+
 (air_pattern, shapes) = read_data()
 
 chamber = set()
@@ -61,6 +70,7 @@ chamber_width = 7
 shape_start_x = 2
 shape_start_y_offset = 3
 y_max = 0
+visited = {}
 
 # ground of chamber
 for x in range(0, chamber_width+2):
@@ -69,11 +79,11 @@ for x in range(0, chamber_width+2):
 # first move left/right
 # then fall down  (rest, if no more down possible)
 
-rocks = 1000000000000
+rocks = 2022
 
 idx_air = 0
 idx_shape = 0
-for n_shape in range(1000000):
+for n_shape in range(1, rocks+1):
   idx_shape = idx_shape % 5
   shape = shapes[idx_shape]
   idx_shape += 1
@@ -115,6 +125,44 @@ for n_shape in range(1000000):
       shape_falling = False
       y_shape_max = get_shape_max_y(shape)
       y_max = max(y_max, y_shape_max+1)
+      watermark = get_watermark(chamber)
+      watermark = [str(i) for i in watermark]
+      key = (idx_shape, idx_air, ".".join(watermark))
+      value = (n_shape,y_max)
+      if visited.get(key) == None:
+        visited[key] = [value]
+      else:
+        visited[key].append(value)
+        # print out for part-2
+        print(f"**** repeat **** n:{n_shape} {key}: {visited[key]}")
 
 
 print(f'y max: {y_max}')
+
+"""
+calculation for part-2
+
+look for periods where shape-idx, wind-idx and watermark are the same
+periode length = number of shapes (dx)
+periode y-delta = increase of y_max during that periode
+
+1. get periode dx and dy
+
+2. get value of y_max on nshape > periode-length  => start value
+
+3. calc number of periodes that completely fits into the rest of shapes
+   (count_shape - start_count_shape) // dx
+
+4. the rest_shapes of that equation = (count_shape - start_count_shape) mod dx 
+
+5. get y_max value of start_count_shape + rest_shapes
+
+6. add (count_full_periods * dy)
+
+
+
+
+
+
+
+"""
