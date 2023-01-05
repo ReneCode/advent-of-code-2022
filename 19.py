@@ -23,94 +23,6 @@ PRODUCTS = [ORE, CLAY, OBSIDIAN, GEODE]
 class Blueprint:
   def __init__(self, costs):
     self.costs = costs
-    self.max_needed = self.get_max_needed(costs)
-
-  def get_max_needed(self, costs):
-    max_needed = [0,0,0,0]
-    for p in PRODUCTS:
-      cost = costs[p]
-      for prod in PRODUCTS:
-        max_needed[p] = max(max_needed[p], costs[prod][p])
-    return max_needed
-
-
-class Factory:
-  def __init__(self, robots, inventory):
-    self.robots = robots.copy()
-    self.inventory = inventory.copy()
-
-  def collect(self):
-    new_inventory = self.inventory.copy()
-    for product in PRODUCTS:
-      count = self.robots[product]
-      if count > 0:
-        new_inventory[product] += count
-    return new_inventory
-
-  def can_build_robot(self, blueprint, product):
-    # no more robots needed
-    if product != GEODE and self.robots[product] >= blueprint.max_needed[product]:
-      return False
-
-    cost = blueprint.costs[product]
-    for p in PRODUCTS:
-      if self.inventory[p] < cost[p]:
-        return False
-    return True
-
-  def build_robot(self, blueprint, product):
-    if not self.can_build_robot(blueprint, product):
-      raise Exception(f'ups cant build robot {product}')
-
-    # print(f'create {product}-robot')
-    cost = blueprint.costs[product]
-    return (product, cost)
-
-  def calc_minutes_to_get_resources(self, resource, count):
-    inv = self.inventory[resource]
-    if inv >= count:
-      return 0
-    count_robots = self.robots[product]
-    if count_robots == 0:
-      # infinitive minutes to go
-      return None
-    need = count - inv
-    minutes = need // count
-    if need % count == 0:
-      return minutes
-    else:
-      return minutes + 1
-
-  def calc_minutes_to_build_robot(self, blueprint, product):
-    costs = blueprint[product]
-    minutes = None
-    critical_product = None
-    for p, count in costs.items():
-      m = self.calc_minutes_to_get_resources(p, count)
-      if m == None:
-        return (None, p)
-      if minutes == None:
-        critical_product = p
-        minutes = m
-      else:
-        if m > minutes:
-          critical_product = p
-          minutes = m
-    return (minutes, critical_product)
-
-  def calc_robot(self, product):
-    pass
-
-  def calc_robot_to_build(self):
-    if self.can_build_robot(GEODE):
-      return GEODE
-
-    if not self.can_build_robot(OBSIDIAN):
-      pass
-
-    (minutes, critical_product) = self.calc_minutes_to_build_robot(GEODE)
-    if minutes == None:
-      (minutes, critical_product) = self.calc_minutes_to_build_robot(critical_product)
 
 
 def get_data():
@@ -136,69 +48,81 @@ def get_data():
   return blueprints
 
 
-def add_robot(robots, resource):
-  new_robots = robots.copy()
-  new_robots[resource] += 1
-  return new_robots
 
 
-def substract_resources(inventory, resources):
-  new_inventory = inventory.copy()
-  for product in PRODUCTS:
-    count = resources[product]
-    new_inventory[product] -= count
-    if new_inventory[product] < 0:
-      raise Exception(f'ups negative count of resource {product}')
-  return new_inventory
+def can_build_robot(cost, inventory):
+  for p in PRODUCTS:
+    if inventory[p] < cost[p]:
+      return False
+  return True
 
+def add_values(a, b):
+  # return a + b
+  result = a.copy()
+  for i in PRODUCTS:
+    result[i] += b[i]
+  return result
 
+def subtract_values(a, b):
+  # return a - b
+  result = a.copy()
+  for i in PRODUCTS:
+    result[i] -= b[i]
+  return result
 
-def get_max_geode(blueprint):
-  robots = [1,0,0,0]
-  inventory = [0,0,0,0]
-  first_factory = Factory(robots, inventory)
+def compare_factory(a):
+  def val_mined(factory):
+    mined = factory[3]
+    return mined[ORE] + mined[CLAY]*10 + mined[OBSIDIAN]*100 + mined[GEODE]*1000
+
+  va = val_mined(a)
+  return va
+
+def get_max_geode(blueprint, max_time, max_que_size):
+  init_robots = [1,0,0,0]
+  init_inventory = [0,0,0,0]
+  init_mined = [0,0,0,0]
+  first_factory = (0, init_robots, init_inventory, init_mined)
   factories = [first_factory]
-  for minute in range(1, 24 + 1):
-    print(f'\n== start Minute {minute} ==')
-    next_factories = []
-    for factory in factories:
-      new_inventory = factory.collect()
+  prev_time = 0
+  max_geodes = 0
+  while len(factories) > 0:
+    (cur_time, robots, cur_inventory, cur_mined) = factories.pop(0)
+    if cur_time > prev_time:
+      if len(factories) > max_que_size:
+        sorted_factories = sorted(factories, reverse=True, key=compare_factory)
+        factories = sorted_factories[:max_que_size]
+      prev_time = cur_time
 
-      # robot = factory.calc_robot_to_build()
+    if cur_time == max_time:
+      max_geodes = max(cur_mined[GEODE], max_geodes)
+      continue
 
-      if not factory.can_build_robot(blueprint, GEODE):
-        # do nothing is one opertunity
-        next_factory = Factory(factory.robots, new_inventory)
-        next_factories.append(next_factory)
+    new_mined = add_values(cur_mined, robots)
+    new_inventory = add_values(cur_inventory, robots)
+    new_factory = (cur_time+1, robots, new_inventory, new_mined)
+    factories.append(new_factory)
 
-      # factory.calc_minutes_to_build_robot()
+    for p in PRODUCTS:
+      if can_build_robot(blueprint.costs[p], cur_inventory):
+        new_robots = robots.copy()
+        new_robots[p] += 1
+        new_inventory = add_values(cur_inventory, robots)
+        new_inventory = subtract_values(new_inventory, blueprint.costs[p])
+        new_factory = (cur_time+1, new_robots, new_inventory, new_mined)
+        factories.append(new_factory)
 
-      for resouce in reversed(PRODUCTS):
-        if factory.can_build_robot(blueprint, resouce):
-          (robot, used_resources) = factory.build_robot(blueprint, resouce)
-          next_inventory = substract_resources(new_inventory, used_resources)
-          next_robots = add_robot(factory.robots, robot)
-          next_factory = Factory(next_robots, next_inventory)
-          next_factories.append(next_factory)
-
-    # a = sorted([f.robots[GEODE] for f in next_factories])[]
-    max_geode_robots = sorted([f.robots[GEODE] for f in next_factories])[-1]
-
-    factories = [f for f in next_factories if f.robots[GEODE] >= max_geode_robots]
-    print(f'finished minute:{minute} factories:{len(factories)} max_geode_robots:{max_geode_robots}')
-
-  sort = sorted(factories, reverse=True, key=lambda f:f.inventory[GEODE])
-  count_geode = sort[0].inventory[GEODE]
-  return count_geode
+  return max_geodes
 
 
 # part-1
 total = 0
 blueprints = get_data()
+
 nr = 0
 for blueprint in blueprints:
   nr += 1
-  geode = get_max_geode(blueprint)
+  geode = get_max_geode(blueprint, 24, 1000)
   print(f'{nr} / {geode}')
   total += nr * geode
 print(f'part-1 total:{total}')
