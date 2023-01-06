@@ -48,8 +48,6 @@ def get_data():
   return blueprints
 
 
-
-
 def can_build_robot(cost, inventory):
   for p in PRODUCTS:
     if inventory[p] < cost[p]:
@@ -71,6 +69,8 @@ def subtract_values(a, b):
   return result
 
 def compare_factory(a):
+  # GEODE is the most valuable product, next OBSIDIAN, ...a
+  # weight - factor 1000, 100, 10, 1
   def val_mined(factory):
     mined = factory[3]
     return mined[ORE] + mined[CLAY]*10 + mined[OBSIDIAN]*100 + mined[GEODE]*1000
@@ -90,6 +90,7 @@ def get_max_geode(blueprint, max_time, max_que_size):
     (cur_time, robots, cur_inventory, cur_mined) = factories.pop(0)
     if cur_time > prev_time:
       if len(factories) > max_que_size:
+        # remove the less valuable factories
         sorted_factories = sorted(factories, reverse=True, key=compare_factory)
         factories = sorted_factories[:max_que_size]
       prev_time = cur_time
@@ -125,6 +126,17 @@ for blueprint in blueprints:
   geode = get_max_geode(blueprint, 24, 1000)
   print(f'{nr} / {geode}')
   total += nr * geode
+print(f'part-1 total:{total}')
+
+#part-2
+
+nr = 0
+total = 1
+for blueprint in blueprints[:3]:
+  nr += 1
+  geode = get_max_geode(blueprint, 32, 5000)
+  print(f'{nr} / {geode}')
+  total *=  geode
 print(f'part-1 total:{total}')
 
 
